@@ -9,3 +9,68 @@ LIMIT 2;
 --Вопрос 1. Таблица рейсов содержит всю информацию о прошлых, текущих и запланированных рейсах. Сколько всего статусов для рейсов определено в таблице?
 SELECT count(distinct(f.status))
 FROM dst_project.flights f
+
+--Вопрос 2. Какое количество самолетов находятся в воздухе на момент среза в базе (статус рейса «самолёт уже вылетел и находится в воздухе»).
+SELECT count(distinct(flight_id))
+FROM dst_project.flights f
+WHERE f.status = 'Departed'
+
+--Вопрос 3. Места определяют схему салона каждой модели. Сколько мест имеет самолет модели 773 (Boeing 777-300)?
+SELECT count(s.seat_no)
+FROM dst_project.seats s
+WHERE s.aircraft_code = '773'
+
+--Сколько состоявшихся (фактических) рейсов было совершено между 1 апреля 2017 года и 1 сентября 2017 года?
+SELECT count(actual_departure::TIMESTAMP)
+FROM dst_project.flights f
+WHERE (f.actual_arrival BETWEEN '2017-04-01' AND '2017-09-01')
+  AND (f.status = 'Arrived')
+  
+--Сколько самолетов моделей типа Boeing, Sukhoi Superjet, Airbus находится в базе авиаперевозок?
+SELECT model,
+       count(distinct(aircraft_code))
+FROM dst_project.aircrafts a
+GROUP BY 1
+
+--Вопрос 3. В какой части (частях) света находится больше аэропортов?
+SELECT distinct(a.timezone),
+       count(a.airport_code)
+FROM dst_project.airports a
+GROUP BY 1
+ORDER BY 1
+
+--Вопрос 4. У какого рейса была самая большая задержка прибытия за все время сбора данных? Введите id рейса (flight_id).
+SELECT f.flight_id,
+       (f.actual_departure- f.scheduled_departure) divinity
+FROM dst_project.flights f
+GROUP BY f.flight_id
+HAVING (f.actual_departure- f.scheduled_departure) IS NOT NULL
+ORDER BY 2 DESC
+LIMIT 1
+
+--Вопрос 1. Когда был запланирован самый первый вылет, сохраненный в базе данных?
+select scheduled_departure 
+from dst_project.flights
+order by scheduled_departure 
+limit 1
+
+--Вопрос 2. Сколько минут составляет запланированное время полета в самом длительном рейсе?
+SELECT distinct(f.scheduled_arrival- f.scheduled_departure)
+FROM dst_project.flights f
+ORDER BY 1 DESC
+LIMIT 1
+
+--Вопрос 3. Между какими аэропортами пролегает самый длительный по времени запланированный рейс?
+SELECT distinct(f.scheduled_arrival- f.scheduled_departure),
+       f.departure_airport,
+       f.arrival_airport
+FROM dst_project.flights f
+GROUP BY 1,
+         2,
+         3
+ORDER BY 1 DESC
+
+--Вопрос 4. Сколько составляет средняя дальность полета среди всех самолетов в минутах? Секунды округляются в меньшую сторону (отбрасываются до минут).
+SELECT avg(f.scheduled_arrival - f.scheduled_departure) fl_time
+FROM dst_project.flights f
+WHERE f.status = 'Arrived
