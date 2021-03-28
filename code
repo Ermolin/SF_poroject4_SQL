@@ -74,3 +74,30 @@ ORDER BY 1 DESC
 SELECT avg(f.scheduled_arrival - f.scheduled_departure) fl_time
 FROM dst_project.flights f
 WHERE f.status = 'Arrived
+
+--Вопрос 1. Мест какого класса у SU9 больше всего?
+SELECT fare_conditions,
+       count(seat_no)
+FROM dst_project.seats
+WHERE aircraft_code = 'SU9'
+GROUP BY fare_conditions
+ORDER BY 2 DESC
+
+--Вопрос 2. Какую самую минимальную стоимость составило бронирование за всю историю?
+SELECT *
+FROM dst_project.bookings
+ORDER BY total_amount
+LIMIT 1
+
+--Вопрос 3. Какой номер места был у пассажира с id = 4313 788533?
+SELECT bp.seat_no
+FROM dst_project.tickets t
+JOIN dst_project.boarding_passes bp ON t.ticket_no = bp.ticket_no
+WHERE passenger_id = '4313 788533'
+
+--Вопрос 1. Анапа — курортный город на юге России. Сколько рейсов прибыло в Анапу за 2017 год?
+SELECT count(f.actual_arrival)
+FROM dst_project.airports a
+JOIN dst_project.flights f ON a.airport_code = f.arrival_airport
+WHERE city = 'Anapa'
+  AND f.actual_arrival BETWEEN '2017-01-01' AND '2017-12-01'
