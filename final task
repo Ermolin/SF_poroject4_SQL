@@ -1,0 +1,65 @@
+Общие вводные данные:
+цена на топливо( из открытых источников) = 27р/литр
+из Анапы в заданный период летают два самолета:
+SU9, 733 со средним расходом топлива 3.88 литра/км
+для перевода расхода топлива из литр/км в широты/долготы мы берем из открытых источников расстояние анапа-белгород (1119 км) и полученное расстояние из формулы x^2 + y^2 = z^2 
+получаем, что расход топлива = 763 литра на еденицу расстояния.Или 20602 рубля/ еденицу расстояния
+
+1 теория: данные не подчищенны, все пусте перегоны самолетов мы не считаем.
+код sql-запроса:
+SELECT f.flight_id,
+       arrival_airport,
+       sum(amount),
+       power ((power ((ad.longitude-aa.longitude) , 2)) + (power ((ad.latitude-aa.latitude) , 2)), 0.5)*20602 zatrati,
+       sum(amount) - power ((power ((ad.longitude-aa.longitude) , 2)) + (power ((ad.latitude-aa.latitude) , 2)), 0.5)*20602 dohod
+FROM dst_project.flights f
+JOIN dst_project.ticket_flights tf ON f.flight_id=tf.flight_id
+JOIN dst_project.airports aa ON aa.airport_code = f.arrival_airport
+JOIN dst_project.airports ad ON ad.airport_code = f.departure_airport
+WHERE f.departure_airport = 'AAQ'
+  AND (date_trunc('month', scheduled_departure) in ('2017-01-01',
+                                                    '2017-02-01',
+                                                    '2016-12-01'))
+  AND status not in ('Cancelled')
+GROUP BY 1,
+         4
+ORDER BY 5 
+
+теория 2: пустые рейсы были, эт рейсы- чистый расход. ищем самый дорогой из них.
+SELECT f.flight_id,
+       arrival_airport,
+       COALESCE(sum(amount), 0) income,
+       power ((power ((ad.longitude-aa.longitude) , 2)) + (power ((ad.latitude-aa.latitude) , 2)), 0.5)*20602 zatrati,
+       COALESCE(sum(amount), 0) - power ((power ((ad.longitude-aa.longitude) , 2)) + (power ((ad.latitude-aa.latitude) , 2)), 0.5)*20602 dohod
+FROM dst_project.flights f
+LEFT JOIN dst_project.ticket_flights tf ON f.flight_id=tf.flight_id
+JOIN dst_project.airports aa ON aa.airport_code = f.arrival_airport
+JOIN dst_project.airports ad ON ad.airport_code = f.departure_airport
+WHERE f.departure_airport = 'AAQ'
+  AND (date_trunc('month', scheduled_departure) in ('2017-01-01',
+                                                    '2017-02-01',
+                                                    '2016-12-01'))
+  AND status not in ('Cancelled')
+GROUP BY 1,
+         4
+ORDER BY 5
+
+теория3: есть рейсы внутри одного дня, которые можно обьеденить, без потери клиентов:
+SELECT f.scheduled_departure,
+       f.arrival_airport,
+       f.flight_id,
+       count(tf.ticket_no)
+FROM dst_project.flights f
+JOIN dst_project.ticket_flights tf ON f.flight_id=tf.flight_id
+JOIN dst_project.airports aa ON aa.airport_code = f.arrival_airport
+JOIN dst_project.airports ad ON ad.airport_code = f.departure_airport
+WHERE f.departure_airport = 'AAQ'
+  AND (date_trunc('month', scheduled_departure) in ('2017-01-01',
+                                                    '2017-02-01',
+                                                    '2016-12-01'))
+  AND status not in ('Cancelled')
+GROUP BY 1,
+         2,
+         3
+ORDER BY 2,
+         1
